@@ -1,12 +1,10 @@
 """ Metrics. """
-import mdtraj as md
 import numpy as np
 from analysis import utils as au
 from data import utils as du
 from openfold.np import residue_constants
 from openfold.np.relax import amber_minimize
 import tree
-from tmtools import tm_align
 
 CA_IDX = residue_constants.atom_order['CA']
 
@@ -42,6 +40,7 @@ ALL_METRICS = (
 )
 
 def calc_tm_score(pos_1, pos_2, seq_1, seq_2):
+    from tmtools import tm_align
     tm_results = tm_align(pos_1, pos_2, seq_1, seq_2)
     return tm_results.tm_norm_chain1, tm_results.tm_norm_chain2 
 
@@ -53,6 +52,7 @@ def calc_perplexity(pred, labels, mask):
     return np.sum(per_res_perplexity * mask) / np.sum(mask)
 
 def calc_mdtraj_metrics(pdb_path):
+    import mdtraj as md
     traj = md.load(pdb_path)
     pdb_ss = md.compute_dssp(traj, simplified=True)
     pdb_coil_percent = np.mean(pdb_ss == 'C')

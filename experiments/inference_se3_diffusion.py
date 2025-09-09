@@ -28,7 +28,8 @@ from typing import Dict
 from experiments import train_se3_diffusion
 from omegaconf import DictConfig, OmegaConf
 from openfold.data import data_transforms
-import esm
+# import esm
+from tqdm import tqdm
 
 
 CA_IDX = residue_constants.atom_order['CA']
@@ -90,15 +91,17 @@ class Sampler:
         # Set model hub directory for ESMFold.
         torch.hub.set_dir(self._infer_conf.pt_hub_dir)
 
+        assert torch.cuda.is_available()
         # Set-up accelerator
         if torch.cuda.is_available():
-            if self._infer_conf.gpu_id is None:
-                available_gpus = ''.join(
-                    [str(x) for x in GPUtil.getAvailable(
-                        order='memory', limit = 8)])
-                self.device = f'cuda:{available_gpus[0]}'
-            else:
-                self.device = f'cuda:{self._infer_conf.gpu_id}'
+            # if self._infer_conf.gpu_id is None:
+            #     available_gpus = ''.join(
+            #         [str(x) for x in GPUtil.getAvailable(
+            #             order='memory', limit = 8)])
+            #     self.device = f'cuda:{available_gpus[0]}'
+            # else:
+            print(torch.cuda.is_available())
+            self.device = f'cuda:{self._infer_conf.gpu_id}'
         else:
             self.device = 'cpu'
         self._log.info(f'Using device: {self.device}')
@@ -122,8 +125,8 @@ class Sampler:
 
         # Load models and experiment
         self._load_ckpt(conf_overrides)
-        self._folding_model = esm.pretrained.esmfold_v1().eval()
-        self._folding_model = self._folding_model.to(self.device)
+        # self._folding_model = esm.pretrained.esmfold_v1().eval()
+        # self._folding_model = self._folding_model.to(self.device)
 
     def _load_ckpt(self, conf_overrides):
         """Loads in model checkpoint."""
@@ -202,12 +205,16 @@ class Sampler:
             self._sample_conf.max_length+1,
             self._sample_conf.length_step
         )
+        print('sample lengths:')
+        for length in all_sample_lengths:
+            print(length, self._sample_conf.samples_per_length)
+
         for sample_length in all_sample_lengths:
             length_dir = os.path.join(
                 self._output_dir, f'length_{sample_length}')
             os.makedirs(length_dir, exist_ok=True)
             self._log.info(f'Sampling length {sample_length}: {length_dir}')
-            for sample_i in range(self._sample_conf.samples_per_length):
+            for sample_i in tqdm(range(self._sample_conf.samples_per_length), desc=f'length-{sample_length}'):
                 sample_dir = os.path.join(length_dir, f'sample_{sample_i}')
                 if os.path.isdir(sample_dir):
                     continue
@@ -220,17 +227,17 @@ class Sampler:
                     output_dir=sample_dir
                 )
 
-                # Run ProteinMPNN
                 pdb_path = traj_paths['sample_path']
-                sc_output_dir = os.path.join(sample_dir, 'self_consistency')
-                os.makedirs(sc_output_dir, exist_ok=True)
-                shutil.copy(pdb_path, os.path.join(
-                    sc_output_dir, os.path.basename(pdb_path)))
-                _ = self.run_self_consistency(
-                    sc_output_dir,
-                    pdb_path,
-                    motif_mask=None
-                )
+                # # Run ProteinMPNN
+                # sc_output_dir = os.path.join(sample_dir, 'self_consistency')
+                # os.makedirs(sc_output_dir, exist_ok=True)
+                # shutil.copy(pdb_path, os.path.join(
+                #     sc_output_dir, os.path.basename(pdb_path)))
+                # _ = self.run_self_consistency(
+                #     sc_output_dir,
+                #     pdb_path,
+                #     motif_mask=None
+                # )
                 self._log.info(f'Done sample {sample_i}: {pdb_path}')
 
     def save_traj(
