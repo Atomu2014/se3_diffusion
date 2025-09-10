@@ -283,20 +283,20 @@ class Sampler:
             sample_path,
             b_factors=b_factors
         )
-        prot_traj_path = au.write_prot_to_pdb(
-            bb_prot_traj,
-            prot_traj_path,
-            b_factors=b_factors
-        )
-        x0_traj_path = au.write_prot_to_pdb(
-            x0_traj,
-            x0_traj_path,
-            b_factors=b_factors
-        )
+        # prot_traj_path = au.write_prot_to_pdb(
+        #     bb_prot_traj,
+        #     prot_traj_path,
+        #     b_factors=b_factors
+        # )
+        # x0_traj_path = au.write_prot_to_pdb(
+        #     x0_traj,
+        #     x0_traj_path,
+        #     b_factors=b_factors
+        # )
         return {
             'sample_path': sample_path,
-            'traj_path': prot_traj_path,
-            'x0_traj_path': x0_traj_path,
+            # 'traj_path': prot_traj_path,
+            # 'x0_traj_path': x0_traj_path,
         }
 
     def run_self_consistency(
@@ -465,7 +465,7 @@ class Sampler:
         )
         return tree.map_structure(lambda x: x[:, 0], sample_out)
 
-@hydra.main(version_base=None, config_path="../config", config_name="inference")
+@hydra.main(version_base=None, config_path="../config", config_name="inference_fid")
 def run(conf: DictConfig) -> None:
 
     # Read model checkpoint.
